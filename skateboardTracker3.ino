@@ -1,7 +1,4 @@
-#include <Time.h>
-#include <TimeLib.h>
-
-#define DEBUG
+//#define DEBUG 
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -12,7 +9,8 @@
 #include <VL6180X.h>
 #include <SPI.h>
 #include <SD.h>
-
+#include <Time.h>
+#include <TimeLib.h>
 
 const int chipSelect = 4;
 
