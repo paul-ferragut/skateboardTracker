@@ -1,4 +1,7 @@
-//#define DEBUG
+#include <Time.h>
+#include <TimeLib.h>
+
+#define DEBUG
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -7,6 +10,11 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 #include <VL6180X.h>
+#include <SPI.h>
+#include <SD.h>
+
+
+const int chipSelect = 4;
 
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
@@ -18,6 +26,8 @@ VL6180X sensor;
 #define pinLed 10
 #define pinHall 11
 #define pinButton 13
+//
+File dataFile;
 
 //#include <elapsedMillis.h>
 //elapsedMillis timeElapsed; //declare global if you don't want it reset every time loop runs
@@ -27,6 +37,8 @@ bool record=false;
 int buttonCounter=0;
 int hallCounter=0;
 
+int currentRecordNum=0;
+int currentRecordTime=0;
 
 void setup() {
 
@@ -44,6 +56,7 @@ Serial.begin(115200);
 
   init10Dof();
   initTof();
+  initSD();
 
 }
 
@@ -59,16 +72,14 @@ void loop() {
     if(buttonState==LOW && buttonCounter>0){
      buttonReleased();
      // we trigger start and stop record on button release
-      
+     if (record == true) {
+      openSD();
+     }else{
+      closeSD();
+     }
      //
    }
 
-   if (record == true) {
-    // turn LED on:
-    digitalWrite(pinLed, HIGH);
-   }else{
-    digitalWrite(pinLed, LOW);
-   }
 
    
 //SENSORS
@@ -90,6 +101,15 @@ void loop() {
   #ifdef DEBUG
   Serial.println(str);
   #endif
+
+     if (record == true) {
+    // turn LED on:
+    digitalWrite(pinLed, HIGH);
+    loopSD(str);
+   }else{
+    digitalWrite(pinLed, LOW);
+   }
+
 
 }
 
@@ -215,9 +235,54 @@ void hallFinished(){
 
 //
 void initSD(){
+    // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    #ifdef DEBUG
+    Serial.println("Card failed, or not present");
+    #endif
+    // don't do anything more:
+    return;
+  }
+  #ifdef DEBUG
+  Serial.println("card initialized.");
+  #endif
+}
+
+void openSD(){
+   
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  //currentRecordNum++;
+  currentRecordTime=millis();
+  String str="datalog"+String(currentRecordNum,DEC)+"-"+String(currentRecordTime,DEC)+".txt";
+  dataFile = SD.open(str, FILE_WRITE);
+  String str2="//New record:"+String(day(),DEC)+"/"+String(month(),DEC)+"/"+String(year(),DEC)+" - "+String(hour(),DEC)+":"+String(minute(),DEC)+":"+String(second(),DEC)+"//";
+  dataFile.println(str2);
+  currentRecordNum++;
   
 }
 
-void loopSD(){
+void closeSD(){
+  String str="//End record"+String(currentRecordNum,DEC)+"-"+String(currentRecordTime,DEC);
+  dataFile.close();
+}
+
+void loopSD(String input){
+  String dataString = input;
+
+  // if the file is available, write to it:
+  if (dataFile) {
+    dataFile.println(dataString);
+    // print to the serial port too:
+    #ifdef DEBUG
+    Serial.println(dataString);
+    #endif
+  }
+  // if the file isn't open, pop up an error:
+  else {
+    #ifdef DEBUG
+    Serial.println("error opening datalog.txt");
+    #endif
+  }
   
 }
