@@ -1,4 +1,4 @@
-//#define DEBUG 
+#define DEBUG 
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -9,10 +9,8 @@
 #include <VL6180X.h>
 #include <SPI.h>
 #include <SD.h>
-#include <Time.h>
-#include <TimeLib.h>
 
-const int chipSelect = 4;
+
 
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
@@ -29,13 +27,13 @@ File dataFile;
 
 //#include <elapsedMillis.h>
 //elapsedMillis timeElapsed; //declare global if you don't want it reset every time loop runs
+const int chipSelect = 4;
 
 bool record=false;
 
 int buttonCounter=0;
 int hallCounter=0;
 
-int currentRecordNum=0;
 int currentRecordTime=0;
 
 void setup() {
@@ -97,7 +95,7 @@ void loop() {
   String str="roll:"+String(orientation.roll,DEC)+";pitch:"+String(orientation.pitch,DEC)+";heading:"+String(orientation.heading,DEC)+";hall:"+String(hallVar,DEC)+";altitude:"+String(height,DEC)+";time:"+String(millis(),DEC);
 
   #ifdef DEBUG
-  Serial.println(str);
+  //Serial.println(str);
   #endif
 
      if (record == true) {
@@ -252,17 +250,48 @@ void openSD(){
   // so you have to close this one before opening another.
   //currentRecordNum++;
   currentRecordTime=millis();
-  String str="datalog"+String(currentRecordNum,DEC)+"-"+String(currentRecordTime,DEC)+".txt";
+  
+  File dir = SD.open("/");
+  dir.rewindDirectory();
+  int numFiles=0;
+    
+    while (true) {
+      
+      numFiles++;
+      File entry =  dir.openNextFile();
+      
+      if (! entry) {
+        // no more files
+        
+        break;
+      }      
+      
+      Serial.print(entry.name());
+      Serial.println(entry.size(), DEC);
+      entry.close();
+        delay(10);
+  }
+  dir.rewindDirectory();
+  dir.close();
+  //
+  delay(10);
+
+  
+  String str="log"+String(numFiles,DEC)+".txt";
+
   dataFile = SD.open(str, FILE_WRITE);
-  String str2="//New record:"+String(day(),DEC)+"/"+String(month(),DEC)+"/"+String(year(),DEC)+" - "+String(hour(),DEC)+":"+String(minute(),DEC)+":"+String(second(),DEC)+"//";
+  String str2="//New record:"+String(currentRecordTime,DEC);// can t get time +String(day(),DEC)+"/"+String(month(),DEC)+"/"+String(year(),DEC)+" - "+String(hour(),DEC)+":"+String(minute(),DEC)+":"+String(second(),DEC)+"//";
+  delay(20);
   dataFile.println(str2);
-  currentRecordNum++;
   
 }
 
 void closeSD(){
-  String str="//End record"+String(currentRecordNum,DEC)+"-"+String(currentRecordTime,DEC);
+  String str="//End record"+String(currentRecordTime,DEC);
+  dataFile.println(str);
+    delay(100);
   dataFile.close();
+    delay(100);
 }
 
 void loopSD(String input){
@@ -273,7 +302,7 @@ void loopSD(String input){
     dataFile.println(dataString);
     // print to the serial port too:
     #ifdef DEBUG
-    Serial.println(dataString);
+    //Serial.println(dataString);
     #endif
   }
   // if the file isn't open, pop up an error:
