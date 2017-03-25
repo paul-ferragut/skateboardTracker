@@ -1,4 +1,4 @@
-#define DEBUG 
+//#define DEBUG 
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -266,8 +266,8 @@ void openSD(){
         break;
       }      
       
-      Serial.print(entry.name());
-      Serial.println(entry.size(), DEC);
+      //Serial.print(entry.name());
+     // Serial.println(entry.size(), DEC);
       entry.close();
         delay(10);
   }
